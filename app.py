@@ -70,7 +70,7 @@ st.markdown("""
 
 # Header
 st.title("📚 AI Chat Assistant")
-st.markdown("🎯 Upload a PDF for document-specific answers, or just chat about any topic 🎯")
+st.markdown("🎯 Telecharger votre PDF Immo 🎯")
 
 # File upload
 pdf_file = st.file_uploader("", type="pdf")
