@@ -4,21 +4,22 @@ from PyPDF2 import PdfReader
 from dotenv import load_dotenv
 import os
 
-# Charger les variables d'environnement
+# Configuration initiale
 load_dotenv()
 
-# Configurer l'API Gemini
+# Configuration de l'API Gemini
 api_key = os.getenv("GOOGLE_API_KEY")
 if not api_key:
-    raise ValueError("Veuillez définir GOOGLE_API_KEY dans votre fichier .env")
+    raise ValueError("❌ La clé API GOOGLE_API_KEY n'est pas définie dans le fichier .env")
 
 try:
     genai.configure(api_key=api_key)
 except Exception as e:
-    st.error(f"Erreur de configuration de l'API Gemini : {str(e)}")
+    st.error(f"❌ Erreur de configuration de l'API Gemini : {str(e)}")
     st.stop()
 
 def get_pdf_text(pdf_file):
+    """Extraction du texte depuis le PDF"""
     text = ""
     pdf_reader = PdfReader(pdf_file)
     for page in pdf_reader.pages:
@@ -26,108 +27,157 @@ def get_pdf_text(pdf_file):
     return text
 
 def get_gemini_response(input_text, pdf_content):
+    """Génération de la réponse via l'API Gemini"""
     try:
         model = genai.GenerativeModel('gemini-pro')
-        prompt = f"""Vous êtes un assistant IA qui aide les utilisateurs à comprendre les documents PDF.
-        Répondez aux questions en vous basant sur le contenu du PDF fourni.
-        Contenu du PDF : {pdf_content}
+        prompt = f"""En tant qu'assistant immobilier expert, analysez ce document PDF et répondez aux questions.
+        Basez vos réponses uniquement sur le contenu du document fourni.
+        
+        Document : {pdf_content}
         Question : {input_text}
         """
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
-        st.error(f"Erreur lors de la génération de la réponse : {str(e)}")
-        return "Je m'excuse, mais j'ai rencontré une erreur lors du traitement de votre demande. Veuillez réessayer."
+        st.error(f"❌ Erreur lors de l'analyse : {str(e)}")
+        return "Désolé, je n'ai pas pu analyser votre demande. Veuillez réessayer."
 
-# Interface Streamlit
+# Configuration de la page
 st.set_page_config(
-    page_title="Assistant IA Chat",
-    page_icon="📚"
+    page_title="Assistant PDF Immobilier",
+    page_icon="🏠",
+    layout="centered"
 )
 
-# CSS personnalisé
+# Style personnalisé
 st.markdown("""
     <style>
     .stApp {
-        max-width: 800px;
+        max-width: 1000px;
         margin: 0 auto;
+        padding: 1rem;
+        background-color: white;
     }
-    .upload-btn {
-        background-color: #9146FF !important;
-        color: white !important;
+    .main-title {
+        text-align: center;
+        color: #1E88E5;
+        margin-bottom: 2rem;
+    }
+    .upload-zone {
+        background-color: white;
+        text-align: center;
+        padding: 1rem;
     }
     .chat-message {
         padding: 1rem;
-        border-radius: 0.5rem;
-        margin-bottom: 1rem;
-        background-color: #f0f2f6;
+        border-radius: 10px;
+        margin: 1rem 0;
+        background-color: white;
+        border-left: 5px solid #1E88E5;
     }
     .stMarkdown {
         font-size: 16px !important;
     }
-    /* Personnalisation de la zone de dépôt de fichiers */
+    [data-testid="stFileUploader"] section {
+        border: none !important;
+        padding: 0 !important;
+        background: none !important;
+    }
+    [data-testid="stFileUploader"] section div:first-child {
+        display: none;
+    }
+    /* Suppression des éléments non désirés */
+    .st-emotion-cache-r421ms {
+        background-color: white !important;
+    }
+    .stApp > header {
+        background-color: transparent !important;
+    }
+    .stApp {
+        background-color: white !important;
+    }
+    div[data-testid="stToolbar"] {
+        display: none;
+    }
+    .st-emotion-cache-18ni7ap {
+        background-color: white !important;
+    }
+    .st-emotion-cache-1dp5vir {
+        background-color: white !important;
+    }
+    .st-emotion-cache-1wbqy5l {
+        background-color: white !important;
+    }
+    footer {
+        display: none;
+    }
+    /* Personnalisation de la zone de dépôt */
     [data-testid="stFileUploader"] {
         width: 100%;
     }
-    [data-testid="stFileUploader"] section {
-        padding: 1rem;
-        border: 2px dashed #9146FF;
-        border-radius: 0.5rem;
-        background: #f8f9fa;
+    .uploadfile-container {
+        border: none !important;
+        background: none !important;
     }
-    [data-testid="stFileUploader"] section [data-testid="stMarkdownContainer"] p {
-        font-size: 1.1em;
-        color: #666;
-        text-align: center;
-    }
-    /* Masquer le texte par défaut en anglais */
-    [data-testid="stFileUploader"] section div:has(+ div p) {
-        display: none;
+    .uploadfile-container:hover {
+        border: none !important;
+        background: none !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# En-tête
-st.title("📚 Assistant IA Chat")
-st.markdown("🎯 Déposez votre PDF pour obtenir des réponses personnalisées 🎯")
+# En-tête de l'application
+st.markdown('<h1 class="main-title">🏠 Assistant PDF Immobilier</h1>', unsafe_allow_html=True)
+st.markdown("""
+    <div style='text-align: center; padding: 1rem;'>
+        <p style='font-size: 1.2em; color: #666;'>
+            Analysez vos documents immobiliers en quelques secondes
+        </p>
+    </div>
+""", unsafe_allow_html=True)
 
-# Upload de fichier
-st.markdown("<p style='text-align: center; color: #666; margin-bottom: 10px;'>💫 Glissez-déposez votre fichier PDF ici 💫</p>", unsafe_allow_html=True)
-pdf_file = st.file_uploader("", type="pdf")
+# Zone de téléchargement simplifiée
+with st.container():
+    st.markdown('<div class="upload-zone">', unsafe_allow_html=True)
+    pdf_file = st.file_uploader("", type="pdf")
+    if not pdf_file:
+        st.markdown("_Glissez-déposez votre fichier ou cliquez pour le sélectionner_")
+    st.markdown('</div>', unsafe_allow_html=True)
 
+# Zone de chat
 if pdf_file is not None:
     try:
-        # Extraire le texte du PDF
+        # Extraction du texte
         pdf_content = get_pdf_text(pdf_file)
         
-        # Initialiser l'historique du chat
+        # Initialisation de l'historique
         if "messages" not in st.session_state:
             st.session_state.messages = []
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": "👋 J'ai analysé votre document. Que souhaitez-vous savoir ?"
+            })
 
-        # Afficher l'historique du chat
+        # Affichage des messages
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
 
-        # Entrée du chat
-        if prompt := st.chat_input("Posez votre question sur le contenu du PDF..."):
-            # Ajouter le message de l'utilisateur à l'historique
+        # Zone de saisie
+        if prompt := st.chat_input("💭 Posez votre question sur le document..."):
+            # Message utilisateur
             st.session_state.messages.append({"role": "user", "content": prompt})
-            
-            # Afficher le message de l'utilisateur
             with st.chat_message("user"):
                 st.markdown(prompt)
 
-            # Obtenir la réponse de l'IA
+            # Réponse de l'assistant
             with st.chat_message("assistant"):
-                with st.spinner("Réflexion en cours..."):
+                with st.spinner("🤔 Analyse en cours..."):
                     response = get_gemini_response(prompt, pdf_content)
                     st.markdown(response)
-                
-            # Ajouter la réponse de l'assistant à l'historique
-            st.session_state.messages.append({"role": "assistant", "content": response})
+                st.session_state.messages.append({"role": "assistant", "content": response})
 
     except Exception as e:
-        st.error(f"Erreur lors du traitement du PDF : {str(e)}")
+        st.error(f"❌ Erreur lors de l'analyse du PDF : {str(e)}")
 else:
-    st.info("Veuillez télécharger un fichier PDF pour commencer la conversation.")
+    st.info("👆 Commencez par télécharger un document PDF pour l'analyser")
